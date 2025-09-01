@@ -73,10 +73,12 @@ def get_series(link_base):
 
     series = init_json["submission"]["series"]  # list
 
+    print(series)
+
     if series == []:
         get_story(link_base)
     else:
-        for i in series:
+        for i in series['items']:
             get_story(i["url"])
 
 

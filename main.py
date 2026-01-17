@@ -1,14 +1,13 @@
 # Built in modules
-import sys
-import re
 import os
+import re
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from alive_progress import alive_bar
-
 # Third party modules
 import requests
+from alive_progress import alive_bar
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -27,13 +26,14 @@ def init_link_to_link_base(init_link: str) -> str:
 
 def link_base_to_link(link_base: str, page_number: int) -> str:
     return (
-        f'https://literotica.com/api/3/stories/{link_base}'
+        f"https://literotica.com/api/3/stories/{link_base}"
         f'?params=%7B"contentPage"%3A{page_number}%7D'
     )
 
 
 # ---- requests session per thread (avoids sharing a Session across threads) ----
 _thread_local = threading.local()
+
 
 def _get_session() -> requests.Session:
     s = getattr(_thread_local, "session", None)
@@ -45,7 +45,7 @@ def _get_session() -> requests.Session:
     # Basic retries for transient network errors
     retry = Retry(
         total=5,
-        backoff_factor=0.5,
+        backoff_factor=1,
         status_forcelist=(429, 500, 502, 503, 504),
         allowed_methods=("GET",),
         raise_on_status=False,
@@ -107,7 +107,9 @@ def get_story(link_base: str, max_workers: int = 12) -> None:
 
         if pages_to_fetch:
             with ThreadPoolExecutor(max_workers=max_workers) as ex:
-                futures = [ex.submit(fetch_page_text, link_base, p) for p in pages_to_fetch]
+                futures = [
+                    ex.submit(fetch_page_text, link_base, p) for p in pages_to_fetch
+                ]
 
                 for fut in as_completed(futures):
                     p, txt = fut.result()
@@ -170,7 +172,9 @@ def get_series(link_base: str, max_workers: int = 12) -> None:
     for u in series_urls:
         # If it's a full link or "/s/..." link, reuse init_link_to_link_base
         try:
-            lb = init_link_to_link_base(u if "://" in u else f"https://literotica.com{u}")
+            lb = init_link_to_link_base(
+                u if "://" in u else f"https://literotica.com{u}"
+            )
         except Exception:
             # Fallback: if API gives plain slug already
             lb = u.strip("/").split("/")[-1]
